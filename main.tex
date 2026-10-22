@@ -1,0 +1,168 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{ETE7-TSIG2}
+\fancyhead[R]{Cirou -- Païtard}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\begin{document}
+
+\begin{titlepage}
+  \centering
+  {\large ENSEIRB-MATMECA}\\[0.2cm]
+  {\large Filière Télécommunications -- 2\textsuperscript{e} année}\\[0.2cm]
+  {\large ETE7-TSIG2 : Filtres numériques, estimation et applications}\\[3cm]
+
+  \rule{\linewidth}{0.5pt}\\[0.4cm]
+  {\LARGE\bfseries Rapport Projet Signaux}\\[0.3cm]
+  {\large Extraction de marqueurs en vue d'une classification de signaux}\\
+  \rule{\linewidth}{0.5pt}\\[3cm]
+
+  {\large Marco \textsc{Cirou} \quad -- \quad Maxence \textsc{Païtard}}\\[1cm]
+  {\large Encadrant : Éric \textsc{Grivel}}
+
+  \vfill
+  {\large Octobre 2026}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{Introduction}
+
+\section{Signaux Aléatoires}
+\subsection{Processus résultant du filtrage d'un bruit blanc gaussien}
+\subsubsection{1ère réalisation}
+Soit un bruit blanc gaussien $u(n)$, centré et de variance $\sigma_u^2$, filtré par un filtre dont les quatre zéros de module $\rho = 0{,}95$ sont placés aux fréquences normalisées : $\nu_1 = -4/9$, $\nu_2 = -1/4$, $\nu_3 = 1/4$ et $\nu_4 = 4/9$. Les zéros sont donc de la forme : $z_k = \rho\, e^{j2\pi\nu_k}$ \\
+On a donc : \\
+\begin{equation}
+  B(z) = \prod_{k=1}^{4} \left( 1 - z_k\, z^{-1} \right)
+       = \sum_{i=0}^{4} b_i z^{-i},
+  \qquad
+  x(n) = \sum_{i=0}^{4} b_i\, u(n-i),
+  \label{eq:ma4}
+\end{equation} \\
+On remarque que la moyenne de ce processus est nulle : $\mathbb{E}[x(n)] = 0$. Par ailleurs, son autocorrélation ne dépend que de $k$ :
+\begin{equation}
+    \forall |k| > 4,
+    \qquad
+    r_x(k) = \sigma_u^2 \sum_{i=0}^{4-|k|} b_i b_{i+|k|}.
+    \label{eq:r_x}
+\end{equation}
+Ainsi il s'agit d'un processus stationnaire au sens large. Le filtre est un RIF car sa fonction de transfert
+$B(z)$ ne possède que des zéros et la sortie ne dépend que d'un nombre fini
+d'échantillons d'entrée, la fonction d'autocorrélation
+est nulle pour tout $\forall |k| > 4$.\\
+Le processus $x(n)$ est donc un processus à moyenne mobile d'ordre 4. \\ \\
+La dénsité spectrale de puissance s'écrit : \\
+\begin{equation}
+  S_x(\nu) = \sigma_u^2 \left| B\!\left(e^{j2\pi\nu}\right) \right|^2.
+  \label{eq:dsp_ma}
+\end{equation}
+Les zéros étant proches du cercle unité, $S_x(\nu)$ présente deux creux marqués en
+$\nu_1$ et $\nu_2$, visibles sur la figure~\ref{fig:ma}.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{ma.pdf}
+  \caption{Processus MA(4) : réalisation de $N = 2000$ échantillons (gauche) et densité
+  spectrale de puissance théorique en dB (droite).}
+  \label{fig:ma}
+\end{figure}
+
+\subsubsection{2\textsuperscript{de} réalisation}
+
+De manière analogue, le bruit blanc $u(n)$ est désormais filtré par un filtre dont les
+quatre pôles, de module $\rho = 0{,}99$, s'écrivent $p_k = \rho\, e^{j2\pi\nu_k}$, avec
+$\nu_1 = -3/7$, $\nu_2 = -1/3$, $\nu_3 = 1/3$ et $\nu_4 = 3/7$. On a donc :
+\begin{equation}
+  H(z) = \frac{1}{\prod_{k=1}^{4} \left( 1 - p_k\, z^{-1} \right)}
+       = \frac{1}{1 + \sum_{i=1}^{4} a_i z^{-i}},
+  \qquad
+  x(n) = u(n) - \sum_{i=1}^{4} a_i\, x(n-i).
+  \label{eq:ar4}
+\end{equation}
+L'échantillon $x(n)$ dépend désormais de ses quatre échantillons passés : il s'agit d'un
+processus autorégressif d'ordre 4.
+
+Contrairement au cas précédent, il s'agit ici d'un filtre RII. Sa
+stabilité n'est donc plus garantie : elle est assurée ici car tous les pôles sont à
+l'intérieur du cercle unité ($\rho < 1$). Le processus est alors stationnaire au sens
+large, une fois le régime transitoire dû aux conditions initiales écoulé. Les pôles étant
+proches du cercle unité, ce régime est plus long que dans le cas MA. Les premiers
+échantillons de la réalisation sont donc écartés. La moyenne reste nulle, mais
+l'autocorrélation n'est plus nulle au-delà d'un certain rang : elle vérifie les équations
+de Yule-Walker, $r_x(k) = -\sum_{i=1}^{4} a_i\, r_x(k-i)$ pour $k \geq 1$.
+
+Par analogie avec \eqref{eq:dsp_ma}, la densité spectrale de puissance s'écrit :
+\begin{equation}
+  S_x(\nu) = \frac{\sigma_u^2}{\left| A\!\left(e^{j2\pi\nu}\right) \right|^2},
+  \qquad A(z) = 1 + \sum_{i=1}^{4} a_i z^{-i}.
+  \label{eq:dsp_ar}
+\end{equation}
+Les creux du cas MA laissent place à des pics de résonance en $\nu_3 = 1/3$ et
+$\nu_4 = 3/7$, visibles sur la figure~\ref{fig:ar}.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{ar.pdf}
+  \caption{Processus AR(4) : réalisation de $N = 2000$ échantillons (gauche) et densité
+  spectrale de puissance théorique en dB (droite).}
+  \label{fig:ar}
+\end{figure}
+
+\subsubsection{Représentations temporelles}
+
+\subsubsection{Périodogrammes}
+Daniell : \\ \\
+Le périodogramme de Daniell fait la valeur absolue de la transformée de Fourrier au carré du signal sur une fenêtre, et se déplace d'un terme à chaque occurence.\\
+Ainsi, on a : \\
+\begin{equation}
+    \hat{S}_D(\nu_k) = \frac{1}{2m+1} \sum_{i=-m}^{m} I_N(\nu_{k+i}).
+  \label{eq:daniell}
+\end{equation}
+
+Bartlett : \\ \\
+
+\begin{equation}
+    \hat{S}_x^{(k)}(w) = \frac{1}{M} abs(\sum_{n=0}^{M-1} x_k[n]e^{-jwn}).
+  \label{eq:daniell}
+\end{equation}
+
+Welch \\ \\
+bh
+Corrélogramme \\ \\
+
+
+\section{Méthode à mettre en oeuvre}
+
+\subsection{Étape n°1}
+
+\subsection{Étape n°2}
+
+\subsection{Étape n°3}
+
+\subsection{Étape n°4}
+
+\section{Applications}
+
+
+\section{Organisation des Séances}
+
+\section{Annexes}
+
+L'ensemble des codes Matlab est fourni dans l'archive
+\texttt{Cirou\_Paitard\_TSIG2.zip}, jointe au rapport. Le script principal
+\texttt{main.m} permet de reproduire l'ensemble des figures présentées. Chaque fonction
+précise en commentaire d'en-tête ses entrées, ses sorties et son objet.
+\end{document}
