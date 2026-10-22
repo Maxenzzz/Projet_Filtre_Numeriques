@@ -27,6 +27,10 @@ w_axis = 2 * pi * f_axis / fech;
 Kb = 10;
 L = N / Kb;
 
+M = 2000;
+Nmethod = 200;
+Lmethod = floor(M/Nmethod);
+
 %% Signal Processing
 
 %Filter 1
@@ -89,6 +93,40 @@ PDaniell2 = pDaniell(y2, 4);
 lag_axis1 = lag_axis1 / (2*N);
 lag_axis2 = lag_axis2 / (2*N);
 
+%% Method
+
+% Step 1
+
+x2 = randn(1,M);
+x_center = x-mean(x);
+y3 = zeros(1,M);
+
+y3(1) = x_center(1);
+for n=2:M
+    y3(n) = x_center(n)+y3(n-1);
+end
+
+% Step 2
+% 2a 
+
+yTronq = y3(1:Lmethod*Nmethod);
+yBloc = reshape(yTronq, Nmethod, Lmethod);
+
+% Mean
+
+TrendMean = zeros(1,Lmethod);
+BlocTrendMean = zeros(Nmethod,Lmethod);
+
+for i=1:Lmethod
+    TrendMean(i) = mean(yBloc(:,i));
+    BlocTrendMean(:,i) = TrendMean(i);
+end
+GlobalTrendMean = reshape(BlocTrendMean, 1, []);
+
+% Droite
+
+
+
 %% Plotting
 
 zplane(b1, a1);
@@ -128,7 +166,7 @@ grid on;
 hold off;
 
 figure;
-plot(f_axis, 10*log10(power_spec_norm1));
+plot(f_axis, 10*log10(dsp_th_norm1));
 hold on;
 plot(f_axis, 10*log10(PDaniell1 / max(PDaniell1)), "r--");
 xlabel("Axe fréquentiel");
@@ -138,7 +176,7 @@ legend("DSP Filtre1", "PDaniell Filtre 1");
 grid on;
 
 figure;
-plot(f_axis, 10*log10(power_spec_norm2));
+plot(f_axis, 10*log10(dsp_th_norm2));
 hold on;
 plot(f_axis, 10*log10(PDaniell2 / max(PDaniell2)), "r--");
 xlabel("Axe fréquentiel");
@@ -148,7 +186,7 @@ legend("DSP Filtre2", "PDaniell Filtre 2");
 grid on;
 
 figure;
-plot(f_axis, 10*log10(power_spec_norm1));
+plot(f_axis, 10*log10(dsp_th_norm1));
 hold on;
 plot(f1, 10*log10(PBartlett1 / max(PBartlett1)), "r--");
 xlabel("Axe fréquentiel");
@@ -158,7 +196,7 @@ legend("DSP Filtre2", "PBartlett Filtre 2");
 grid on;
 
 figure;
-plot(f_axis, 10*log10(power_spec_norm2));
+plot(f_axis, 10*log10(dsp_th_norm2));
 hold on;
 plot(f2, 10*log10(PBartlett2 / max(PBartlett2)), "r--");
 xlabel("Axe fréquentiel");
@@ -168,7 +206,7 @@ legend("DSP Filtre2", "PBartlett Filtre 2");
 grid on;
 
 figure;
-plot(f_axis, 10*log10(power_spec_norm1));
+plot(f_axis, 10*log10(dsp_th_norm1));
 hold on;
 plot(f1_w, 10*log10(PWelch1 / max(PWelch1)), "r--");
 xlabel("Axe fréquentiel");
@@ -178,7 +216,7 @@ legend("DSP Filtre 1", "PWelch Filtre 1");
 grid on;
 
 figure;
-plot(f_axis, 10*log10(power_spec_norm2));
+plot(f_axis, 10*log10(dsp_th_norm2));
 hold on;
 plot(f2_w, 10*log10(PWelch2 / max(PWelch2)), "r--");
 xlabel("Axe fréquentiel");
@@ -188,7 +226,7 @@ legend("DSP Filtre 2", "PWelch Filtre 2");
 grid on;
 
 figure;
-plot(f_axis, 10*log10(power_spec_norm1));
+plot(f_axis, 10*log10(dsp_th_norm1));
 hold on;
 plot(lag_axis1, 10*log10(real(Corr1) / max(real(Corr1))), "r--");
 xlabel("Axe fréquentiel");
@@ -198,7 +236,7 @@ legend("DSP Filtre 1", "Auto correlation de Y1");
 grid on;
 
 figure;
-plot(f_axis, 10*log10(power_spec_norm2));
+plot(f_axis, 10*log10(dsp_th_norm2));
 hold on;
 plot(lag_axis2, 10*log10(real(Corr2)/max(real(Corr2))), "r--");
 xlabel("Axe fréquentiel");
@@ -207,7 +245,12 @@ title("Correlation spectral de Y2");
 legend("DSP Filtre 2", "Auto correlation de Y2");
 grid on;
 
-
+figure;
+plot(yTronq);
+hold on;
+plot(GlobalTrendMean, 'r', 'LineWidth', 2);
+legend('Signal', 'Tendance estimée');
+grid on;
 
 function P = pDaniell(x, w)
     X = abs(fftshift(fft(x))).^2;
