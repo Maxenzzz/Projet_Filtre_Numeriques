@@ -31,7 +31,10 @@ M = 2000;
 Nmethod = 200;
 Lmethod = floor(M/Nmethod);
 
-Spread = zeros(1, Lmethod);
+Slope = zeros(1, Lmethod);
+Offset = zeros(1, Lmethod);
+BlocTrendDroite = zeros(Nmethod, Lmethod);
+n1 = (1:Nmethod)';
 
 %% Signal Processing
 
@@ -100,7 +103,7 @@ lag_axis2 = lag_axis2 / (2*N);
 % Step 1
 
 x2 = randn(1,M);
-x_center = x-mean(x);
+x_center = x2-mean(x2);
 y3 = zeros(1,M);
 
 y3(1) = x_center(1);
@@ -127,9 +130,27 @@ GlobalTrendMean = reshape(BlocTrendMean, 1, []);
 
 % Droite
 
-Bloc1 = yBloc(:,1);
-%Spread(1) = sum(y.*)
+for i = 1:Lmethod
+    Bloc1 = yBloc(:,i);
+    Slope(i) = sum((n1-mean(n1)).*(Bloc1-mean(Bloc1))) / sum((n1-mean(n1)).^2);
+    Offset(i) = mean(Bloc1) - Slope(i)*mean(n1);
+    BlocTrendDroite(:,i) = Slope(i)*n1 + Offset(i);
+end
+GlobalTrendDroite = reshape(BlocTrendDroite,1,[]);
 
+% Polynome 2nd deg
+
+A = [n1.^2, n1, ones(Nmethod, 1)];
+
+for j = 1:Lmethod
+    Bloc1 = yBloc(:,j);
+    theta = inv(A'*A)*A'*Bloc1;
+    a = theta(1);
+    b = theta(2);
+    c = theta(3);
+    BlocTrendPoly(:,j) = a*n1.^2 + b*n1 + c;
+end
+GlobalTrendPoly = reshape(BlocTrendPoly,1,[]);
 
 %% Plotting
 
@@ -250,11 +271,13 @@ legend("DSP Filtre 2", "Auto correlation de Y2");
 grid on;
 
 figure;
-plot(yTronq);
+plot(yTronq, 'k');
 hold on;
-plot(GlobalTrendMean, 'r', 'LineWidth', 2);
-legend('Signal', 'Tendance estimée');
+plot(GlobalTrendMean, 'b', 'LineWidth', 1.5);
+plot(GlobalTrendDroite, 'r', 'LineWidth', 1.5);
+plot(GlobalTrendPoly, 'g', 'LineWidth', 1.5);
 grid on;
+legend('Signal', 'Moyenne', 'Regression lineaire', 'Polynome 2nd deg');
 
 function P = pDaniell(x, w)
     X = abs(fftshift(fft(x))).^2;
