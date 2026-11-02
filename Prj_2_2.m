@@ -31,6 +31,8 @@ M = 2000;
 Nmethod = 200;
 Lmethod = floor(M/Nmethod);
 
+Spread = zeros(1, Lmethod);
+
 %% Signal Processing
 
 %Filter 1
@@ -125,6 +127,8 @@ GlobalTrendMean = reshape(BlocTrendMean, 1, []);
 
 % Droite
 
+Bloc1 = yBloc(:,1);
+%Spread(1) = sum(y.*)
 
 
 %% Plotting
