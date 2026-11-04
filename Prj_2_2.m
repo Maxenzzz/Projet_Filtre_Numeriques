@@ -176,7 +176,41 @@ GlobalTrendFiltre = filter(bMean,aMean,y3);
 
 % 2c
 % Stratégie 1
+% PB
 
+h_PB = ones(1, Nmethod)/Nmethod;
+g_PB = filter(h_PB, 1, y3); 
+gf_PB = flip(g_PB);
+
+r_PB = filter(h_PB, 1, gf_PB);
+rf_PB = flip(r_PB);
+
+% Passe Haut
+
+h_PH = fir1(Nmethod, 0.01, 'high');
+g_PH = filter(h_PH, 1, y3); 
+gf_PH = flip(g_PH);
+
+r_PH = filter(h_PH, 1, gf_PH);
+rf_PH = flip(r_PH);
+
+% Passe Bande
+
+h_PBd = fir1(Nmethod, [0.01 0.1]);
+g_PBd = filter(h_PBd, 1, y3); 
+gf_PBd = flip(g_PBd);
+
+r_PBd = filter(h_PBd, 1, gf_PBd);
+rf_PBd = flip(r_PBd);
+
+% Coupe Bande
+
+h_CB = fir1(Nmethod, [0.01 0.1], 'stop');
+g_CB = filter(h_CB, 1, y3); 
+gf_CB = flip(g_CB);
+
+r_CB = filter(h_CB, 1, gf_CB);
+rf_CB = flip(r_CB);
 
 %% Plotting
 
@@ -302,15 +336,27 @@ hold on;
 plot(GlobalTrendMean, 'b', 'LineWidth', 1.5);
 plot(GlobalTrendDroite, 'r', 'LineWidth', 1.5);
 plot(GlobalTrendPoly2, 'g', 'LineWidth', 1.5);
-plot(GlobalTrendPoly3, 'y', 'LineWidth', 1.5);
+plot(GlobalTrendPoly3, 'Color', '#D95319', 'LineWidth', 1.5);
 grid on;
-legend('Signal', 'Moyenne', 'Regression lineaire', 'Polynome 2nd deg');
+legend('Signal', 'Moyenne', 'Regression lineaire', 'Polynome 2nd deg', 'Polynome 3e deg');
 
 figure;
 plot(y3,'k');
 hold on;
 plot(GlobalTrendFiltre,'m','LineWidth',1.5);
 grid on;
+title('Signal filtré par un filtre passe bas');
+
+figure;
+plot(y3, 'k');
+hold on;
+plot(rf_PB, 'b', 'LineWidth', 1.5);
+plot(rf_PH, 'r', 'LineWidth', 1.5);
+plot(rf_PBd, 'g', 'LineWidth', 1.5);
+plot(rf_CB, 'Color', '#D95319', 'LineWidth', 1.5);
+legend('Signal', 'Filtré Passe Bas', 'Filtré Passe Haut', 'Filtré Passe Bande', 'Filtré Coupe Bande');
+grid on;
+title('Stratégie 1 avec différents filtres');
 
 xlabel('Echantillons');
 ylabel('Amplitude');
