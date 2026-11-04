@@ -212,6 +212,19 @@ gf_CB = flip(g_CB);
 r_CB = filter(h_CB, 1, gf_CB);
 rf_CB = flip(r_CB);
 
+% Stratégie 2
+% PB
+
+g_filter_PB = filter(h_PB, 1, y3);
+r_filter_PB = filter(h_PB, 1, flip(y3));
+out_filter_PB = g_filter_PB + flip(r_filter_PB);
+
+% CB
+
+g_filter_CB = filter(h_CB, 1, y3);
+r_filter_CB = filter(h_CB, 1, flip(y3));
+out_filter_CB = g_filter_CB + flip(r_filter_CB);
+
 %% Plotting
 
 zplane(b1, a1);
@@ -358,10 +371,14 @@ legend('Signal', 'Filtré Passe Bas', 'Filtré Passe Haut', 'Filtré Passe Bande
 grid on;
 title('Stratégie 1 avec différents filtres');
 
-xlabel('Echantillons');
-ylabel('Amplitude');
-title('Estimation par moyenne glissante');
-legend('Signal initial','Tendance filtree');
+figure;
+plot(y3, 'k');
+hold on;
+plot(out_filter_PB, 'b', 'LineWidth', 1.5);
+plot(out_filter_CB, 'r', 'LineWidth', 1.5);
+legend('Signal', 'Filtré Passe Bas', 'Filtré Coupe Bande');
+grid on;
+title('Stratégie 2 avec différents filtres');
 
 function P = pDaniell(x, w)
     X = abs(fftshift(fft(x))).^2;
