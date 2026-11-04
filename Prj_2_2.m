@@ -148,9 +148,35 @@ for j = 1:Lmethod
     a = theta(1);
     b = theta(2);
     c = theta(3);
-    BlocTrendPoly(:,j) = a*n1.^2 + b*n1 + c;
+    BlocTrendPoly2(:,j) = a*n1.^2 + b*n1 + c;
 end
-GlobalTrendPoly = reshape(BlocTrendPoly,1,[]);
+GlobalTrendPoly2 = reshape(BlocTrendPoly2,1,[]);
+
+%Polynome du 3e deg
+
+B = [n1.^3, n1.^2, n1, ones(Nmethod, 1)];
+
+for j = 1:Lmethod
+    Bloc1 = yBloc(:,j);
+    theta = inv(B'*B)*B'*Bloc1;
+    a = theta(1);
+    b = theta(2);
+    c = theta(3);
+    d = theta(4);
+    BlocTrendPoly3(:,j) = a*n1.^3 + b*n1.^2 + c*n1 + d;
+end
+GlobalTrendPoly3 = reshape(BlocTrendPoly3,1,[]);
+
+% 2b
+% Filtrage PB, moyenne glissante
+
+bMean = ones(1,Nmethod)/Nmethod;
+aMean = 1;
+GlobalTrendFiltre = filter(bMean,aMean,y3);
+
+% 2c
+% Stratégie 1
+
 
 %% Plotting
 
@@ -275,9 +301,21 @@ plot(yTronq, 'k');
 hold on;
 plot(GlobalTrendMean, 'b', 'LineWidth', 1.5);
 plot(GlobalTrendDroite, 'r', 'LineWidth', 1.5);
-plot(GlobalTrendPoly, 'g', 'LineWidth', 1.5);
+plot(GlobalTrendPoly2, 'g', 'LineWidth', 1.5);
+plot(GlobalTrendPoly3, 'y', 'LineWidth', 1.5);
 grid on;
 legend('Signal', 'Moyenne', 'Regression lineaire', 'Polynome 2nd deg');
+
+figure;
+plot(y3,'k');
+hold on;
+plot(GlobalTrendFiltre,'m','LineWidth',1.5);
+grid on;
+
+xlabel('Echantillons');
+ylabel('Amplitude');
+title('Estimation par moyenne glissante');
+legend('Signal initial','Tendance filtree');
 
 function P = pDaniell(x, w)
     X = abs(fftshift(fft(x))).^2;
