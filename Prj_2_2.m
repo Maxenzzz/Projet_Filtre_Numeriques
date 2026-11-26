@@ -104,13 +104,13 @@ L_ar_w = 500;
 [PWelch1, f1_w] = pwelch(y1, hann(L_ma_w), L_ma_w/2, N, fech, "centered");
 [PWelch2, f2_w] = pwelch(y2, hann(L_ar_w), L_ar_w/2, N, fech, "centered");
 
-% Correlograms (Theoreme de Wiener-Khinchin : FFT de l'autocorrelation temporelle estimee)
-[rx1, lags1] = xcorr(y1, 'unbiased');
-[rx2, lags2] = xcorr(y2, 'unbiased');
-
-PCorr1 = abs(fftshift(fft(rx1, N)));
-PCorr2 = abs(fftshift(fft(rx2, N)));
-f_corr = (-N/2 : N/2 - 1) * (fech / N);
+% Correlograms : TF de l'autocorrélation estimée, pondérée par une fenêtre
+Kmax = 100;                                      % nombre de retards conservés
+w_lag = bartlett(2*Kmax + 1);                    % fenêtre triangulaire : estimée toujours >= 0
+Rxx1 = xcorr(y1, Kmax, "biased");
+Rxx2 = xcorr(y2, Kmax, "biased");
+Corr1 = abs(fftshift(fft(Rxx1 .* w_lag, N)));    % zéro-padding à N points : même axe que f_axis
+Corr2 = abs(fftshift(fft(Rxx2 .* w_lag, N)));
 
 %% Method
 
@@ -158,7 +158,7 @@ A = [n1.^2, n1, ones(Nmethod, 1)];
 
 for j = 1:Lmethod
     Bloc1 = yBloc(:,j);
-    theta = inv(A'*A)*A'*Bloc1;
+    theta = A \ Bloc1;  % theta = inv(A'*A)*A'*Bloc1;
     a = theta(1);
     b = theta(2);
     c = theta(3);
@@ -172,7 +172,7 @@ B = [n1.^3, n1.^2, n1, ones(Nmethod, 1)];
 
 for j = 1:Lmethod
     Bloc1 = yBloc(:,j);
-    theta = inv(B'*B)*B'*Bloc1;
+    theta = B \ Bloc1;  % theta = inv(B'*B)*B'*Bloc1;
     a = theta(1);
     b = theta(2);
     c = theta(3);
@@ -231,30 +231,46 @@ rf_CB = flip(r_CB);
 
 g_filter_PB = filter(h_PB, 1, y3);
 r_filter_PB = filter(h_PB, 1, flip(y3));
-out_filter_PB = g_filter_PB + flip(r_filter_PB);
+out_filter_PB = (g_filter_PB + flip(r_filter_PB))/2;
 
 % CB
 
 g_filter_CB = filter(h_CB, 1, y3);
 r_filter_CB = filter(h_CB, 1, flip(y3));
-out_filter_CB = g_filter_CB + flip(r_filter_CB);
+out_filter_CB = (g_filter_CB + flip(r_filter_CB))/2;
 
 %% Plotting
 
 zplane(b1, a1);
 figure;
 subplot(1,2,1);
-plot(f_axis, 20*log10(Y_amp1 / max(Y_amp1)));
-xlabel("Fréquence normalisée");
+
+plot(f_axis, 20*log10(Y_amp1/max(Y_amp1)))
+xlabel("Axe fréquentiel");
 ylabel("Amplitude normalisée (dB)");
-title("Spectre d'amplitude du filtre RIF (MA)");
+title("Spectre d'amplitude du flitre RIF");
 grid on;
 
 subplot(1,2,2);
-plot(f_axis, 20*log10(Y_amp2 / max(Y_amp2)));
-xlabel("Fréquence normalisée");
+plot(f_axis, 20*log10(Y_amp2/max(Y_amp2)));
+xlabel("Axe fréquentiel");
 ylabel("Amplitude normalisée (dB)");
-title("Spectre d'amplitude du filtre RII (AR)");
+title("Spectre d'amplitude des filtre RII");
+grid on;
+
+figure;
+zplane(b2, a2);
+
+figure;
+subplot(2,1,1);
+plot(y1);
+xlabel("n"); ylabel("x(n)");
+title("Réalisation du processus MA(4)");
+grid on;
+subplot(2,1,2);
+plot(y2);
+xlabel("n"); ylabel("x(n)");
+title("Réalisation du processus AR(4)");
 grid on;
 
 figure;
@@ -263,8 +279,9 @@ hold on;
 plot(f_axis, 10*log10(dsp_th_norm1), "r--");
 xlabel("Fréquence normalisée");
 ylabel("Puissance normalisée (dB)");
-title("DSP théorique et empirique (Processus MA)");
-legend("Périodogramme standard", "DSP théorique");
+
+title("Spectre de puissance et DSP théorique, filtre 1");
+legend("Spectre de puissance", "DSP théorique");
 grid on;
 hold off;
 
@@ -274,8 +291,8 @@ hold on;
 plot(f_axis, 10*log10(dsp_th_norm2), "r--");
 xlabel("Fréquence normalisée");
 ylabel("Puissance normalisée (dB)");
-title("DSP théorique et empirique (Processus AR)");
-legend("Périodogramme standard", "DSP théorique");
+title("Spectre de puissance et DSP théorique, filtre 2");
+legend("Spectre de puissance", "DSP théorique");
 grid on;
 hold off;
 
@@ -283,10 +300,10 @@ figure;
 plot(f_axis, 10*log10(dsp_th_norm1), "b-");
 hold on;
 plot(f_axis, 10*log10(PDaniell1 / max(PDaniell1)), "r--");
-xlabel("Fréquence normalisée");
-ylabel("Puissance normalisée (dB)");
-title("Périodogramme de Daniell normalisé (Processus MA)");
-legend("DSP théorique", "Daniell (m=16)");
+xlabel("Axe fréquentiel");
+ylabel("Périodogramme de Daniell normalisé (dB)");
+title("Estimations spectrales lissées par un periodograme de Daniell");
+legend("DSP Filtre 1", "PDaniell Filtre 1");
 grid on;
 hold off;
 
@@ -294,10 +311,10 @@ figure;
 plot(f_axis, 10*log10(dsp_th_norm2), "b-");
 hold on;
 plot(f_axis, 10*log10(PDaniell2 / max(PDaniell2)), "r--");
-xlabel("Fréquence normalisée");
-ylabel("Puissance normalisée (dB)");
-title("Périodogramme de Daniell normalisé (Processus AR)");
-legend("DSP théorique", "Daniell (m=2)");
+xlabel("Axe fréquentiel");
+ylabel("Périodogramme de Daniell normalisé (dB)");
+title("Estimations spectrales lissées par un periodograme de Daniell");
+legend("DSP Filtre 2", "PDaniell Filtre 2");
 grid on;
 hold off;
 
@@ -305,10 +322,10 @@ figure;
 plot(f_axis, 10*log10(dsp_th_norm1), "b-");
 hold on;
 plot(f1, 10*log10(PBartlett1 / max(PBartlett1)), "r--");
-xlabel("Fréquence normalisée");
-ylabel("Puissance normalisée (dB)");
-title("Périodogramme de Bartlett normalisé (Processus MA)");
-legend("DSP théorique", "Bartlett (L=80)");
+xlabel("Axe fréquentiel");
+ylabel("Périodogramme de Bartlett normalisé (dB)");
+title("Estimations spectrales lissées par un periodograme de Bartlett");
+legend("DSP Filtre 1", "PBartlett Filtre 1");
 grid on;
 hold off;
 
@@ -316,10 +333,10 @@ figure;
 plot(f_axis, 10*log10(dsp_th_norm2), "b-");
 hold on;
 plot(f2, 10*log10(PBartlett2 / max(PBartlett2)), "r--");
-xlabel("Fréquence normalisée");
-ylabel("Puissance normalisée (dB)");
-title("Périodogramme de Bartlett normalisé (Processus AR)");
-legend("DSP théorique", "Bartlett (L=400)");
+xlabel("Axe fréquentiel");
+ylabel("Périodogramme de Bartlett normalisé (dB)");
+title("Estimations spectrales lissées par un periodograme de Bartlett");
+legend("DSP Filtre 2", "PBartlett Filtre 2");
 grid on;
 hold off;
 
@@ -348,24 +365,23 @@ hold off;
 figure;
 plot(f_axis, 10*log10(dsp_th_norm1), "b-");
 hold on;
-plot(f_corr, 10*log10(PCorr1 / max(PCorr1)), "r--");
+plot(f_axis, 10*log10(Corr1 / max(Corr1)), "r--");
 xlabel("Fréquence normalisée");
-ylabel("Puissance normalisée (dB)");
-title("Corrélogramme normalisé (Processus MA)");
-legend("DSP théorique", "Corrélogramme");
+ylabel("Corrélogramme normalisé (dB)");
+title("Corrélogramme de y_1 (Blackman-Tukey)");
+legend("DSP Filtre 1", "Corrélogramme Filtre 1");
 grid on;
 hold off;
 
 figure;
 plot(f_axis, 10*log10(dsp_th_norm2), "b-");
 hold on;
-plot(f_corr, 10*log10(PCorr2 / max(PCorr2)), "r--");
+plot(f_axis, 10*log10(Corr2 / max(Corr2)), "r--");
 xlabel("Fréquence normalisée");
-ylabel("Puissance normalisée (dB)");
-title("Corrélogramme normalisé (Processus AR)");
-legend("DSP théorique", "Corrélogramme");
-grid on;
-hold off;
+ylabel("Corrélogramme normalisé (dB)");
+title("Corrélogramme de y_2 (Blackman-Tukey)");
+legend("DSP Filtre 2", "Corrélogramme Filtre 2");
+grid on; 
 
 figure;
 plot(yTronq, 'k');
@@ -375,6 +391,7 @@ plot(GlobalTrendDroite, 'r', 'LineWidth', 1.5);
 plot(GlobalTrendPoly2, 'g', 'LineWidth', 1.5);
 plot(GlobalTrendPoly3, 'Color', '#D95319', 'LineWidth', 1.5);
 grid on;
+title("Tendances estimées par blocs (N = 200)");
 legend('Signal', 'Moyenne', 'Regression lineaire', 'Polynome 2nd deg', 'Polynome 3e deg');
 
 figure;
@@ -382,7 +399,7 @@ plot(y3,'k');
 hold on;
 plot(GlobalTrendFiltre,'m','LineWidth',1.5);
 grid on;
-title('Signal filtré par un filtre passe bas');
+title("Tendance estimée par moyenne glissante (2b)");
 
 figure;
 plot(y3, 'k');
