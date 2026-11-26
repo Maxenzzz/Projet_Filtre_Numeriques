@@ -9,16 +9,16 @@ R = 0.95;
 r = 0.99;
 fech = 1;
 
-z1 = R*exp(1j*pi/4);
+z1 = R*exp(1j*2*pi*1/4);
 z2 = conj(z1);
 
-z3 = R*exp(1j*3*pi/4);
+z3 = R*exp(1j*2*pi*4/9);
 z4 = conj(z3);
 
-p1 = r*exp(1j*pi/3);
+p1 = r*exp(1j*2*pi*1/3);
 p2 = conj(p1);
 
-p3 = r*exp(1j*3*pi/7);
+p3 = r*exp(1j*2*pi*3/7);
 p4 = conj(p3);
 
 f_axis = (-N/2: N/2 - 1) * (fech / N);
@@ -81,22 +81,36 @@ dsp_th_norm2 = dsp_th2 / max(dsp_th2);
 
 % Periodograms
 
-PDaniell1 = pDaniell(y1, 4);
-PDaniell2 = pDaniell(y2, 4);
+% Tailles optimales calculees pour preserver la resolution sans distorsion :
+% Daniell
+% AR : FWHM ~ 0.0032 => M < 6.4 -> m_AR = 2
+% MA : FWHM ~ 0.0167 => M < 33.5 -> m_MA = 16
+PDaniell1 = pDaniell(y1, 2*16 + 1);
+PDaniell2 = pDaniell(y2, 2*2 + 1);
 
-[PBartlett1, f1] = pwelch(y1, rectwin(L), 0, N, fech, "centered");
-[PBartlett2, f2] = pwelch(y2, rectwin(L), 0, N, fech, "centered");
+% Bartlett (sous-blocs de longueur L, K = N/L)
+% MA : L >= 60 => L = 80
+% AR : L >= 313 => L = 400
+L_ma_b = 80;
+L_ar_b = 400;
+[PBartlett1, f1] = pwelch(y1, rectwin(L_ma_b), 0, N, fech, "centered");
+[PBartlett2, f2] = pwelch(y2, rectwin(L_ar_b), 0, N, fech, "centered");
 
-[PWelch1, f1_w] = pwelch(y1, hann(L), 40, N, fech, "centered");
-[PWelch2, f2_w] = pwelch(y2, hann(L), 40, N, fech, "centered");
+% Welch (fenetre Hann, recouvrement 50%)
+% MA : L >= 90 => L = 100, recouvrement L/2 = 50
+% AR : L >= 470 => L = 500, recouvrement L/2 = 250
+L_ma_w = 100;
+L_ar_w = 500;
+[PWelch1, f1_w] = pwelch(y1, hann(L_ma_w), L_ma_w/2, N, fech, "centered");
+[PWelch2, f2_w] = pwelch(y2, hann(L_ar_w), L_ar_w/2, N, fech, "centered");
 
-% Correlograms
+% Correlograms (Theoreme de Wiener-Khinchin : FFT de l'autocorrelation temporelle estimee)
+[rx1, lags1] = xcorr(y1, 'unbiased');
+[rx2, lags2] = xcorr(y2, 'unbiased');
 
-[Corr1, lag_axis1] = xcorr(Y1, "biased");
-[Corr2, lag_axis2] = xcorr(Y2, "biased");
-
-lag_axis1 = lag_axis1 / (2*N);
-lag_axis2 = lag_axis2 / (2*N);
+PCorr1 = abs(fftshift(fft(rx1, N)));
+PCorr2 = abs(fftshift(fft(rx2, N)));
+f_corr = (-N/2 : N/2 - 1) * (fech / N);
 
 %% Method
 
@@ -230,26 +244,27 @@ out_filter_CB = g_filter_CB + flip(r_filter_CB);
 zplane(b1, a1);
 figure;
 subplot(1,2,1);
-plot(f_axis, 10*log10(Y_amp1))
-xlabel("Axe fréquentiel");
-ylabel("Amplitude normalisé");
-title("Spectres d'amplitude du flitres RIF");
+plot(f_axis, 20*log10(Y_amp1 / max(Y_amp1)));
+xlabel("Fréquence normalisée");
+ylabel("Amplitude normalisée (dB)");
+title("Spectre d'amplitude du filtre RIF (MA)");
 grid on;
 
 subplot(1,2,2);
-plot(f_axis, 10*log10(Y_amp2));
-xlabel("Axe fréquentiel");
-ylabel("Amplitude normalisée");
-title("Spectres d'amplitude des filtres RII");
+plot(f_axis, 20*log10(Y_amp2 / max(Y_amp2)));
+xlabel("Fréquence normalisée");
+ylabel("Amplitude normalisée (dB)");
+title("Spectre d'amplitude du filtre RII (AR)");
 grid on;
 
 figure;
 plot(f_axis, 10*log10(power_spec_norm1));
 hold on;
 plot(f_axis, 10*log10(dsp_th_norm1), "r--");
-xlabel("Axe fréquentiel");
+xlabel("Fréquence normalisée");
 ylabel("Puissance normalisée (dB)");
-title("Densité spectrale de puissance théorique et empirique");
+title("DSP théorique et empirique (Processus MA)");
+legend("Périodogramme standard", "DSP théorique");
 grid on;
 hold off;
 
@@ -257,91 +272,100 @@ figure;
 plot(f_axis, 10*log10(power_spec_norm2));
 hold on;
 plot(f_axis, 10*log10(dsp_th_norm2), "r--");
-xlabel("Axe fréquentiel");
+xlabel("Fréquence normalisée");
 ylabel("Puissance normalisée (dB)");
-title("Densité spectrale de puissance théorique et empirique");
+title("DSP théorique et empirique (Processus AR)");
+legend("Périodogramme standard", "DSP théorique");
 grid on;
 hold off;
 
 figure;
-plot(f_axis, 10*log10(dsp_th_norm1));
+plot(f_axis, 10*log10(dsp_th_norm1), "b-");
 hold on;
 plot(f_axis, 10*log10(PDaniell1 / max(PDaniell1)), "r--");
-xlabel("Axe fréquentiel");
-ylabel("Périodogramme de Daniell normalisé (dB)");
-title("Estimations spectrales lissées par un periodograme de Daniell");
-legend("DSP Filtre1", "PDaniell Filtre 1");
+xlabel("Fréquence normalisée");
+ylabel("Puissance normalisée (dB)");
+title("Périodogramme de Daniell normalisé (Processus MA)");
+legend("DSP théorique", "Daniell (m=16)");
 grid on;
+hold off;
 
 figure;
-plot(f_axis, 10*log10(dsp_th_norm2));
+plot(f_axis, 10*log10(dsp_th_norm2), "b-");
 hold on;
 plot(f_axis, 10*log10(PDaniell2 / max(PDaniell2)), "r--");
-xlabel("Axe fréquentiel");
-ylabel("Périodogramme de Daniell normalisé (dB)");
-title("Estimations spectrales lissées par un periodograme de Daniell");
-legend("DSP Filtre2", "PDaniell Filtre 2");
+xlabel("Fréquence normalisée");
+ylabel("Puissance normalisée (dB)");
+title("Périodogramme de Daniell normalisé (Processus AR)");
+legend("DSP théorique", "Daniell (m=2)");
 grid on;
+hold off;
 
 figure;
-plot(f_axis, 10*log10(dsp_th_norm1));
+plot(f_axis, 10*log10(dsp_th_norm1), "b-");
 hold on;
 plot(f1, 10*log10(PBartlett1 / max(PBartlett1)), "r--");
-xlabel("Axe fréquentiel");
-ylabel("Périodogramme de Bartlett normalisé (dB)");
-title("Estimations spectrales lissées par un periodograme de Bartlett");
-legend("DSP Filtre2", "PBartlett Filtre 2");
+xlabel("Fréquence normalisée");
+ylabel("Puissance normalisée (dB)");
+title("Périodogramme de Bartlett normalisé (Processus MA)");
+legend("DSP théorique", "Bartlett (L=80)");
 grid on;
+hold off;
 
 figure;
-plot(f_axis, 10*log10(dsp_th_norm2));
+plot(f_axis, 10*log10(dsp_th_norm2), "b-");
 hold on;
 plot(f2, 10*log10(PBartlett2 / max(PBartlett2)), "r--");
-xlabel("Axe fréquentiel");
-ylabel("Périodogramme de Bartlett normalisé (dB)");
-title("Estimations spectrales lissées par un periodograme de Bartlett");
-legend("DSP Filtre2", "PBartlett Filtre 2");
+xlabel("Fréquence normalisée");
+ylabel("Puissance normalisée (dB)");
+title("Périodogramme de Bartlett normalisé (Processus AR)");
+legend("DSP théorique", "Bartlett (L=400)");
 grid on;
+hold off;
 
 figure;
-plot(f_axis, 10*log10(dsp_th_norm1));
+plot(f_axis, 10*log10(dsp_th_norm1), "b-");
 hold on;
 plot(f1_w, 10*log10(PWelch1 / max(PWelch1)), "r--");
-xlabel("Axe fréquentiel");
-ylabel("Périodogramme de Welch normalisé (dB)");
-title("Estimations spectrales lissées par un periodograme de Welch");
-legend("DSP Filtre 1", "PWelch Filtre 1");
+xlabel("Fréquence normalisée");
+ylabel("Puissance normalisée (dB)");
+title("Périodogramme de Welch normalisé (Processus MA)");
+legend("DSP théorique", "Welch (L=100, Hann)");
 grid on;
+hold off;
 
 figure;
-plot(f_axis, 10*log10(dsp_th_norm2));
+plot(f_axis, 10*log10(dsp_th_norm2), "b-");
 hold on;
 plot(f2_w, 10*log10(PWelch2 / max(PWelch2)), "r--");
-xlabel("Axe fréquentiel");
-ylabel("Périodogramme de Welch normalisé (dB)");
-title("Estimations spectrales lissées par un periodograme de Welch");
-legend("DSP Filtre 2", "PWelch Filtre 2");
+xlabel("Fréquence normalisée");
+ylabel("Puissance normalisée (dB)");
+title("Périodogramme de Welch normalisé (Processus AR)");
+legend("DSP théorique", "Welch (L=500, Hann)");
 grid on;
+hold off;
 
 figure;
-plot(f_axis, 10*log10(dsp_th_norm1));
+plot(f_axis, 10*log10(dsp_th_norm1), "b-");
 hold on;
-plot(lag_axis1, 10*log10(real(Corr1) / max(real(Corr1))), "r--");
-xlabel("Axe fréquentiel");
-ylabel("Périodogramme de Welch normalisé (dB)");
-title("Correlation spectral de Y1");
-legend("DSP Filtre 1", "Auto correlation de Y1");
+plot(f_corr, 10*log10(PCorr1 / max(PCorr1)), "r--");
+xlabel("Fréquence normalisée");
+ylabel("Puissance normalisée (dB)");
+title("Corrélogramme normalisé (Processus MA)");
+legend("DSP théorique", "Corrélogramme");
 grid on;
+hold off;
 
 figure;
-plot(f_axis, 10*log10(dsp_th_norm2));
+plot(f_axis, 10*log10(dsp_th_norm2), "b-");
 hold on;
-plot(lag_axis2, 10*log10(real(Corr2)/max(real(Corr2))), "r--");
-xlabel("Axe fréquentiel");
-ylabel("Périodogramme de Welch normalisé (dB)");
-title("Correlation spectral de Y2");
-legend("DSP Filtre 2", "Auto correlation de Y2");
+plot(f_corr, 10*log10(PCorr2 / max(PCorr2)), "r--");
+xlabel("Fréquence normalisée");
+ylabel("Puissance normalisée (dB)");
+title("Corrélogramme normalisé (Processus AR)");
+legend("DSP théorique", "Corrélogramme");
 grid on;
+hold off;
 
 figure;
 plot(yTronq, 'k');

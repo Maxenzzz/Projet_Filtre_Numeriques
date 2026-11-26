@@ -132,20 +132,20 @@ Soit I un periodogramme tel que: \\
 \\
     Periodogramme de Daniell:
 \\
-    On formule de cette expression le periodogramme de Daniell, il consiste en une moyenne mobile de taille (2m + 1) dans le domaine fréquentielle du periodogramme standard ci-dessus:
+    On formule de cette expression le periodogramme de Daniell, il consiste en une moyenne mobile de taille (2m + 1) dans le domaine fréquentiel du periodogramme standard ci-dessus:
 \\
 \begin{equation}
     \hat{S}_{\text{Daniell}}(f_k) = \frac{1}{2m + 1} \sum_{j = -m}^{m} I(f_{k + j})
 \end{equation}
-Pour choisir la taille de fênetre optimal afin de garder le plus de variance possible sans considérer le bruit qui s'ajoute au signal traité, on utilise la formule théorique exacte de non-distorsion spectrale pour un periodogram de Daniell: \\ \\
+Pour choisir la taille de fênetre optimale afin de réduire au maximum la variance de l'estimateur sans déformer le spectre , on utilise la formule théorique exacte de non-distorsion spectrale pour un periodogram de Daniell: \\ \\
 \begin{equation}
     {M}{\Delta f}<{\Delta_{FWHM}}
 \end{equation}
-où ${M}$ est la taille de la fênetre, ${\Delta f}$ est le pas fréquentielle et  $\Delta_{FWHM}$ est la largeur à mi-hauteur de la variation spectrale la plus étroite du filtre. 
+où ${M}$ est la largeur de la fenêtre de lissage, ${\Delta f}$ est le pas fréquentiel et  $\Delta_{FWHM}$ est la largeur à mi-hauteur de la variation spectrale la plus étroite du filtre. 
 
 Dans le cas de nos deux processus on a:
     $$\Delta f = \frac{fe}{N} = \frac{1}{N}$$
-    où N est la taille de la fenêtre considérée,
+    où N est la longueur de la séquence temporelle,
 \begin{equation}
     \Delta_{FWHM,MA}=\frac{1-R}{\pi R}
 \end{equation}
@@ -154,31 +154,62 @@ Dans le cas de nos deux processus on a:
 \end{equation}
 
 Application numérique:
-    $$\Delta_{FWHM,MA} \approx 0,0032$$
-    $$\Delta_{FWHM,AR} \approx 0,0167$$
+    $$\Delta_{FWHM,MA} \approx 0,0167$$
+    $$\Delta_{FWHM,AR} \approx 0,0032$$
 
 Donc:
-    $$M_{MA}<6,4$$
-    $$M_{AR}<33,5$$
-On choisie alors:
-    $$m_{MA} = 2$$
-    $$m_{AR} = 16$$
+    $$M_{MA}<33,5$$
+    $$M_{AR}<6,4$$
+On choisit alors:
+    $$m_{MA} = 16$$
+    $$m_{AR} = 2$$
 
 Ce calcul met en évidence la limite intrinsèque du périodogramme de Daniell :\\
-    • Pour un processus à dynamique rapide / résonance étroite, la théorie bride la taille de fenêtre à une valeur très faible (m = 2) L'estimateur préserve la forme du pic mais ne peut réduire la variance que d'un facteur 5, laissant le tracé encore fortement fluctuant.\\
-    • Pour un processus à variation plus lente, la fenêtre admissible plus large (m = 16) permet un lissage bien plus efficace (facteur 33 sur la variance).\\
-    • Daniell illustre donc parfaitement le dilemme : on ne peut pas lisser efficacement le bruit sur un spectre très résonant sans en détruire les extrema.\\
+\begin{equation}
+    \operatorname{Var}(\hat{S}_{\text{Daniell}}) \approx \frac{1}{2m+1} S_x^2
+\end{equation}
 
+    -Pour le processus à variations spectrales lentes, la fenêtre admissible (m = 16) permet un lissage efficace, la variance est divisée par 33 en tout en respectant les conditions de non-distorsion.\\
+    -Pour le processus à variations spectrales rapides, la théorie bride la taille de fenêtre à une valeur très faible (m = 2) L'estimateur préserve la forme du pic mais ne peut réduire la variance que d'un facteur 5, laissant le tracé fortement impacté par le bruit.\\
+    -Daniell illustre donc parfaitement le dilemme : on ne peut pas lisser efficacement le bruit sur un spectre très résonant sans en détruire les extrema.\\
+
+Periodogramme de Bartlett:
 \\
-Periodogramme de Bartlett:\\
-\\
-Le principe de ce periodogramme consiste a découper le signal en $K$ blocs de longueur $M$, tel que $K = \frac{N}{M}$, de calculer le periodogramme $I$ [6] sur chacun des blocs, puis de faire la moyenne arithmétique sur les $K$ periodogrammes, d'où les formules suivantes:
+Le principe de ce periodogramme consiste à découper le signal en $K$ blocs de longueur $M$, tel que $K = \frac{N}{M}$, de calculer le periodogramme $I$ [6] sur chacun des blocs, puis de faire la moyenne arithmétique sur les $K$ periodogrammes, d'où les formules suivantes:
 
 \begin{equation}
     I_i(f) = \frac{1}{M} \left| \sum_{n=0}^{M-1} x_i(n) e^{-j 2 \pi f n} \right|^2
-    \newline
+\end{equation}
+\begin{equation}
     \hat{S}_{\text{Bartlett}}(f) = \frac{1}{K} \sum_{i=1}^{K} I_i(f)
 \end{equation}
+
+D'une manière similaire, pour le choix de la longueur des K blocs, la condition de non-distorsion spectrale pour un periodogramme de Bartlett impose:
+\begin{equation}
+    \Delta f < {\Delta}_{FWHM}
+    \iff M > \frac{1}{{\Delta}_{FWHM}}
+\end{equation}
+Application numérique:
+\begin{equation}
+    M_{MA} \ge 60 \implies M_{MA,choisi} = 80
+\end{equation}
+\begin{equation}
+    M_{AR} \ge 313 \implies M_{AR, choisi} = 400
+\end{equation}
+\\
+Dans le cas du periodogramme de Bartlett on a:
+\begin{equation}
+    \operatorname{Var}(\hat{S}_{\text{Bartlett}}) \approx \frac{1}{K} S_x^2
+\end{equation}
+
+Ainsi on a: 
+$$K_{MA} = 25$$  $$K_{AR} = 5$$
+On remarque qu'on retrouve des facteurs similaires pour les deux processus, mais surtout que le periodogramme de Bartlett se heurte au même problème que celui de Daniell. I.e pour le processus à variations spectrales rapides, L'estimateur ne réduit la variance que d'un facteur 5, ce qui laisse le tracé fortement perturbé par le bruit.
+\\
+Periodogramme de Welch:
+
+
+
 
 
 \section{Méthode à mettre en oeuvre}
