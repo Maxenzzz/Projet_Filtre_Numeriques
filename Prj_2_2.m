@@ -22,10 +22,6 @@ p3 = r*exp(1j*2*pi*3/7);
 p4 = conj(p3);
 
 f_axis = (-N/2: N/2 - 1) * (fech / N);
-w_axis = 2 * pi * f_axis / fech;
-
-Kb = 10;
-L = N / Kb;
 
 M = 2000;
 Nmethod = 200;
@@ -48,7 +44,6 @@ h1 = freqz(b1, a1, f_axis, fech);
 H_FFT1 = abs(h1);
 
 y1 = filter(b1, a1, x);
-y_norm1 = y1/max(abs(y1));
 
 Y1 = fftshift(fft(y1, N));
 Y_amp1 = abs(Y1) / N;
@@ -68,7 +63,6 @@ h2 = freqz(b2, a2, f_axis, fech);
 H_FFT2 = abs(h2);
 
 y2 = filter(b2, a2, x);
-y_norm2 = y2 / max(abs(y2));
 
 Y2 = fftshift(fft(y2, N));
 Y_amp2 = abs(Y2) / N;
@@ -93,16 +87,16 @@ PDaniell2 = pDaniell(y2, 2*2 + 1);
 % AR : L >= 313 => L = 400
 L_ma_b = 80;
 L_ar_b = 400;
-[PBartlett1, f1] = pwelch(y1, rectwin(L_ma_b), 0, N, fech, "centered");
-[PBartlett2, f2] = pwelch(y2, rectwin(L_ar_b), 0, N, fech, "centered");
+PBartlett1 = pWelchMain(y1, rectwin(L_ma_b), 0, N);
+PBartlett2 = pWelchMain(y2, rectwin(L_ar_b), 0, N);
 
 % Welch (fenetre Hann, recouvrement 50%)
 % MA : L >= 90 => L = 100, recouvrement L/2 = 50
 % AR : L >= 470 => L = 500, recouvrement L/2 = 250
 L_ma_w = 100;
 L_ar_w = 500;
-[PWelch1, f1_w] = pwelch(y1, hann(L_ma_w), L_ma_w/2, N, fech, "centered");
-[PWelch2, f2_w] = pwelch(y2, hann(L_ar_w), L_ar_w/2, N, fech, "centered");
+PWelch1 = pWelchMain(y1, hann(L_ma_w), L_ma_w/2, N);
+PWelch2 = pWelchMain(y2, hann(L_ar_w), L_ar_w/2, N);
 
 % Correlograms : TF de l'autocorrélation estimée, pondérée par une fenêtre
 Kmax = 100;                                      % nombre de retards conservés
@@ -239,6 +233,33 @@ g_filter_CB = filter(h_CB, 1, y3);
 r_filter_CB = filter(h_CB, 1, flip(y3));
 out_filter_CB = (g_filter_CB + flip(r_filter_CB))/2;
 
+% Applications
+
+bb = randn(1, M);                                 % cas 1 : bruit blanc
+ar2 = filter(1, [1 -1.5 0.7], randn(1, M));       % cas 2 : AR(2), pôles de module 0,84
+
+% Question 1 et suppression de l'intégration
+for deg = 0:3
+    penteBB = marqueur(bb, deg, 1);
+    penteAR2 = marqueur(ar2, deg, 1);
+    penteBBsans = marqueur(bb, deg, 0);
+    penteAR2sans = marqueur(ar2, deg, 0);
+    fprintf("deg %d : BB %.2f, AR2 %.2f, BB sans int %.2f, AR2 sans int %.2f\n", deg, penteBB, penteAR2, penteBBsans, penteAR2sans);
+end
+
+% Question 2 : influence du nombre d'échantillons
+Mlist = [500 1000 2000 5000];
+for k = 1:length(Mlist)
+    penteM = marqueur(randn(1, Mlist(k)), 1, 1);
+    fprintf("M = %d : pente = %.2f\n", Mlist(k), penteM);
+end
+
+% Etape 3 & 4 : marqueur du signal de l'étape 1
+[pente, Nlist, P] = marqueur(x2, 1, 1);
+logN = log(Nlist);
+logP = log(P);
+offset = mean(logP) - pente*mean(logN);
+
 %% Plotting
 
 zplane(b1, a1);
@@ -246,16 +267,16 @@ figure;
 subplot(1,2,1);
 
 plot(f_axis, 20*log10(Y_amp1/max(Y_amp1)))
-xlabel("Axe fréquentiel");
+xlabel("Fréquence normalisée");
 ylabel("Amplitude normalisée (dB)");
-title("Spectre d'amplitude du flitre RIF");
+title("Spectre d'amplitude du filtre RIF");
 grid on;
 
 subplot(1,2,2);
 plot(f_axis, 20*log10(Y_amp2/max(Y_amp2)));
-xlabel("Axe fréquentiel");
+xlabel("Fréquence normalisée");
 ylabel("Amplitude normalisée (dB)");
-title("Spectre d'amplitude des filtre RII");
+title("Spectre d'amplitude du filtre RII");
 grid on;
 
 figure;
@@ -300,7 +321,7 @@ figure;
 plot(f_axis, 10*log10(dsp_th_norm1), "b-");
 hold on;
 plot(f_axis, 10*log10(PDaniell1 / max(PDaniell1)), "r--");
-xlabel("Axe fréquentiel");
+xlabel("Fréquence normalisée");
 ylabel("Périodogramme de Daniell normalisé (dB)");
 title("Estimations spectrales lissées par un periodograme de Daniell");
 legend("DSP Filtre 1", "PDaniell Filtre 1");
@@ -311,7 +332,7 @@ figure;
 plot(f_axis, 10*log10(dsp_th_norm2), "b-");
 hold on;
 plot(f_axis, 10*log10(PDaniell2 / max(PDaniell2)), "r--");
-xlabel("Axe fréquentiel");
+xlabel("Fréquence normalisée");
 ylabel("Périodogramme de Daniell normalisé (dB)");
 title("Estimations spectrales lissées par un periodograme de Daniell");
 legend("DSP Filtre 2", "PDaniell Filtre 2");
@@ -321,8 +342,8 @@ hold off;
 figure;
 plot(f_axis, 10*log10(dsp_th_norm1), "b-");
 hold on;
-plot(f1, 10*log10(PBartlett1 / max(PBartlett1)), "r--");
-xlabel("Axe fréquentiel");
+plot(f_axis, 10*log10(PBartlett1 / max(PBartlett1)), "r--");
+xlabel("Fréquence normalisée");
 ylabel("Périodogramme de Bartlett normalisé (dB)");
 title("Estimations spectrales lissées par un periodograme de Bartlett");
 legend("DSP Filtre 1", "PBartlett Filtre 1");
@@ -332,8 +353,8 @@ hold off;
 figure;
 plot(f_axis, 10*log10(dsp_th_norm2), "b-");
 hold on;
-plot(f2, 10*log10(PBartlett2 / max(PBartlett2)), "r--");
-xlabel("Axe fréquentiel");
+plot(f_axis, 10*log10(PBartlett2 / max(PBartlett2)), "r--");
+xlabel("Fréquence normalisée");
 ylabel("Périodogramme de Bartlett normalisé (dB)");
 title("Estimations spectrales lissées par un periodograme de Bartlett");
 legend("DSP Filtre 2", "PBartlett Filtre 2");
@@ -343,7 +364,7 @@ hold off;
 figure;
 plot(f_axis, 10*log10(dsp_th_norm1), "b-");
 hold on;
-plot(f1_w, 10*log10(PWelch1 / max(PWelch1)), "r--");
+plot(f_axis, 10*log10(PWelch1 / max(PWelch1)), "r--");
 xlabel("Fréquence normalisée");
 ylabel("Puissance normalisée (dB)");
 title("Périodogramme de Welch normalisé (Processus MA)");
@@ -354,7 +375,7 @@ hold off;
 figure;
 plot(f_axis, 10*log10(dsp_th_norm2), "b-");
 hold on;
-plot(f2_w, 10*log10(PWelch2 / max(PWelch2)), "r--");
+plot(f_axis, 10*log10(PWelch2 / max(PWelch2)), "r--");
 xlabel("Fréquence normalisée");
 ylabel("Puissance normalisée (dB)");
 title("Périodogramme de Welch normalisé (Processus AR)");
@@ -382,6 +403,7 @@ ylabel("Corrélogramme normalisé (dB)");
 title("Corrélogramme de y_2 (Blackman-Tukey)");
 legend("DSP Filtre 2", "Corrélogramme Filtre 2");
 grid on; 
+hold off;
 
 figure;
 plot(yTronq, 'k');
@@ -421,7 +443,99 @@ legend('Signal', 'Filtré Passe Bas', 'Filtré Coupe Bande');
 grid on;
 title('Stratégie 2 avec différents filtres');
 
+figure;
+plot(logN, logP, '.');
+hold on;
+plot(logN, pente*logN + offset, 'r');
+xlabel("log N");
+ylabel("log P(N)");
+title("Représentation log-log, pente = " + pente);
+legend("log P(N)", "Droite de régression");
+grid on;
+
 function P = pDaniell(x, w)
+% Périodogramme de Daniell : périodogramme lissé par une moyenne glissante en fréquence
+% Entrées : x - signal (vecteur colonne)
+%           w - taille de la fenêtre de lissage, impaire (2m+1 points fréquentiels)
+% Sortie  : P - périodogramme lissé, centré sur [-1/2, 1/2[ (vecteur ligne)
     X = abs(fftshift(fft(x))).^2;
     P = movmean(X, w).';
+end
+
+function P = pWelchMain(x, w, D, Nfft)
+% Périodogramme de Welch calculé à la main
+% (c'est un périodogramme de Bartlett si w est rectangulaire et D = 0)
+% Entrées : x    - signal (vecteur colonne)
+%           w    - fenêtre de pondération (vecteur colonne de taille L)
+%           D    - recouvrement entre deux segments (en échantillons)
+%           Nfft - nombre de points de la FFT
+% Sortie  : P    - DSP estimée, centrée sur [-1/2, 1/2[ (vecteur colonne)
+    L = length(w);
+    pas = L - D;                                  % décalage entre deux segments
+    K = floor((length(x) - L) / pas) + 1;         % nombre de segments
+    P = zeros(Nfft, 1);
+    for k = 1:K
+        debut = (k-1)*pas + 1;
+        segment = x(debut:debut+L-1) .* w;        % segment pondéré par la fenêtre
+        X = fft(segment, Nfft);
+        P = P + abs(X).^2;
+    end
+    U = sum(w.^2);                                % énergie de la fenêtre
+    P = fftshift(P) / (K * U);                    % moyenne des K périodogrammes
+end
+
+% Etape 3 & 4
+
+function [pente, Nlist, P] = marqueur(x, deg, integrer)
+% Calcule le marqueur d'un signal (étapes 1 à 4 de la méthode)
+% Entrées : x        - signal (vecteur ligne)
+%           deg      - degré de la tendance (0 : moyenne, 1 : droite, 2 ou 3 : polynôme)
+%           integrer - 1 pour centrer puis intégrer le signal, 0 pour seulement le centrer
+% Sorties : pente    - le marqueur : pente de la droite de régression de log P(N) en fonction de log N
+%           Nlist    - valeurs de N utilisées
+%           P        - puissance du résidu P(N) pour chaque valeur de N
+    % Etape 1 : centrage puis intégration
+    x = x - mean(x);
+    M = length(x);
+    if integrer == 1
+        y = zeros(1, M);
+        y(1) = x(1);
+        for n = 2:M
+            y(n) = x(n) + y(n-1);
+        end
+    else
+        y = x;
+    end
+    % Valeurs de N : de 3 à M/2
+    if deg <= 1
+        Nmin = 3;
+    else
+        Nmin = deg + 2;
+    end
+    Nlist = Nmin:floor(M/2);
+    P = zeros(1, length(Nlist));
+    for k = 1:length(Nlist)
+        N = Nlist(k);
+        L = floor(M/N);
+        yBloc = reshape(y(1:L*N), N, L);
+        n1 = (1:N)'/N;
+        % Matrice de régression
+        A = zeros(N, deg+1);
+        for p = 0:deg
+            A(:, p+1) = n1.^p;
+        end
+        % Etapes 2 et 3 : tendance de chaque bloc puis puissance du résidu
+        somme = 0;
+        for i = 1:L
+            Bloc1 = yBloc(:, i);
+            theta = A \ Bloc1;
+            tendance = A * theta;
+            somme = somme + sum((Bloc1 - tendance).^2);
+        end
+        P(k) = somme / (L*N);
+    end
+    % Etape 4 : pente de la droite de régression de log(P) en fonction de log(N)
+    logN = log(Nlist);
+    logP = log(P);
+    pente = sum((logN - mean(logN)).*(logP - mean(logP))) / sum((logN - mean(logN)).^2);
 end
