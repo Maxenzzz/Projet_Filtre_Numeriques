@@ -148,9 +148,82 @@ for j = 1:Lmethod
     a = theta(1);
     b = theta(2);
     c = theta(3);
-    BlocTrendPoly(:,j) = a*n1.^2 + b*n1 + c;
+    BlocTrendPoly2(:,j) = a*n1.^2 + b*n1 + c;
 end
-GlobalTrendPoly = reshape(BlocTrendPoly,1,[]);
+GlobalTrendPoly2 = reshape(BlocTrendPoly2,1,[]);
+
+%Polynome du 3e deg
+
+B = [n1.^3, n1.^2, n1, ones(Nmethod, 1)];
+
+for j = 1:Lmethod
+    Bloc1 = yBloc(:,j);
+    theta = inv(B'*B)*B'*Bloc1;
+    a = theta(1);
+    b = theta(2);
+    c = theta(3);
+    d = theta(4);
+    BlocTrendPoly3(:,j) = a*n1.^3 + b*n1.^2 + c*n1 + d;
+end
+GlobalTrendPoly3 = reshape(BlocTrendPoly3,1,[]);
+
+% 2b
+% Filtrage PB, moyenne glissante
+
+bMean = ones(1,Nmethod)/Nmethod;
+aMean = 1;
+GlobalTrendFiltre = filter(bMean,aMean,y3);
+
+% 2c
+% Stratégie 1
+% PB
+
+h_PB = ones(1, Nmethod)/Nmethod;
+g_PB = filter(h_PB, 1, y3); 
+gf_PB = flip(g_PB);
+
+r_PB = filter(h_PB, 1, gf_PB);
+rf_PB = flip(r_PB);
+
+% Passe Haut
+
+h_PH = fir1(Nmethod, 0.01, 'high');
+g_PH = filter(h_PH, 1, y3); 
+gf_PH = flip(g_PH);
+
+r_PH = filter(h_PH, 1, gf_PH);
+rf_PH = flip(r_PH);
+
+% Passe Bande
+
+h_PBd = fir1(Nmethod, [0.01 0.1]);
+g_PBd = filter(h_PBd, 1, y3); 
+gf_PBd = flip(g_PBd);
+
+r_PBd = filter(h_PBd, 1, gf_PBd);
+rf_PBd = flip(r_PBd);
+
+% Coupe Bande
+
+h_CB = fir1(Nmethod, [0.01 0.1], 'stop');
+g_CB = filter(h_CB, 1, y3); 
+gf_CB = flip(g_CB);
+
+r_CB = filter(h_CB, 1, gf_CB);
+rf_CB = flip(r_CB);
+
+% Stratégie 2
+% PB
+
+g_filter_PB = filter(h_PB, 1, y3);
+r_filter_PB = filter(h_PB, 1, flip(y3));
+out_filter_PB = g_filter_PB + flip(r_filter_PB);
+
+% CB
+
+g_filter_CB = filter(h_CB, 1, y3);
+r_filter_CB = filter(h_CB, 1, flip(y3));
+out_filter_CB = g_filter_CB + flip(r_filter_CB);
 
 %% Plotting
 
@@ -275,9 +348,37 @@ plot(yTronq, 'k');
 hold on;
 plot(GlobalTrendMean, 'b', 'LineWidth', 1.5);
 plot(GlobalTrendDroite, 'r', 'LineWidth', 1.5);
-plot(GlobalTrendPoly, 'g', 'LineWidth', 1.5);
+plot(GlobalTrendPoly2, 'g', 'LineWidth', 1.5);
+plot(GlobalTrendPoly3, 'Color', '#D95319', 'LineWidth', 1.5);
 grid on;
-legend('Signal', 'Moyenne', 'Regression lineaire', 'Polynome 2nd deg');
+legend('Signal', 'Moyenne', 'Regression lineaire', 'Polynome 2nd deg', 'Polynome 3e deg');
+
+figure;
+plot(y3,'k');
+hold on;
+plot(GlobalTrendFiltre,'m','LineWidth',1.5);
+grid on;
+title('Signal filtré par un filtre passe bas');
+
+figure;
+plot(y3, 'k');
+hold on;
+plot(rf_PB, 'b', 'LineWidth', 1.5);
+plot(rf_PH, 'r', 'LineWidth', 1.5);
+plot(rf_PBd, 'g', 'LineWidth', 1.5);
+plot(rf_CB, 'Color', '#D95319', 'LineWidth', 1.5);
+legend('Signal', 'Filtré Passe Bas', 'Filtré Passe Haut', 'Filtré Passe Bande', 'Filtré Coupe Bande');
+grid on;
+title('Stratégie 1 avec différents filtres');
+
+figure;
+plot(y3, 'k');
+hold on;
+plot(out_filter_PB, 'b', 'LineWidth', 1.5);
+plot(out_filter_CB, 'r', 'LineWidth', 1.5);
+legend('Signal', 'Filtré Passe Bas', 'Filtré Coupe Bande');
+grid on;
+title('Stratégie 2 avec différents filtres');
 
 function P = pDaniell(x, w)
     X = abs(fftshift(fft(x))).^2;
