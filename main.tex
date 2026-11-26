@@ -130,7 +130,7 @@ Soit I un periodogramme tel que: \\
     I(f) = \frac{1}{N} \left| \sum_{n=0}^{N-1} x(n) e^{-j 2 \pi f n} \right|^2
 \end{equation}
 \\
-    Periodogramme de Daniell:
+    \indent Periodogramme de Daniell:
 \\
     On formule de cette expression le periodogramme de Daniell, il consiste en une moyenne mobile de taille (2m + 1) dans le domaine fréquentiel du periodogramme standard ci-dessus:
 \\
@@ -163,19 +163,19 @@ Donc:
 On choisit alors:
     $$m_{MA} = 16$$
     $$m_{AR} = 2$$
-
+%% figure 2 tracés Daniell.
 Ce calcul met en évidence la limite intrinsèque du périodogramme de Daniell :\\
 \begin{equation}
     \operatorname{Var}(\hat{S}_{\text{Daniell}}) \approx \frac{1}{2m+1} S_x^2
 \end{equation}
 
     -Pour le processus à variations spectrales lentes, la fenêtre admissible (m = 16) permet un lissage efficace, la variance est divisée par 33 en tout en respectant les conditions de non-distorsion.\\
-    -Pour le processus à variations spectrales rapides, la théorie bride la taille de fenêtre à une valeur très faible (m = 2) L'estimateur préserve la forme du pic mais ne peut réduire la variance que d'un facteur 5, laissant le tracé fortement impacté par le bruit.\\
-    -Daniell illustre donc parfaitement le dilemme : on ne peut pas lisser efficacement le bruit sur un spectre très résonant sans en détruire les extrema.\\
+    \indent -Pour le processus à variations spectrales rapides, la théorie bride la taille de fenêtre à une valeur très faible (m = 2) L'estimateur préserve la forme du pic mais ne peut réduire la variance que d'un facteur 5, laissant le tracé fortement impacté par le bruit.\\
+    \indent -Daniell illustre donc parfaitement le dilemme : on ne peut pas lisser efficacement le bruit sur un spectre très résonnant sans en détruire les extrema.\\
 
 Periodogramme de Bartlett:
 \\
-Le principe de ce periodogramme consiste à découper le signal en $K$ blocs de longueur $M$, tel que $K = \frac{N}{M}$, de calculer le periodogramme $I$ [6] sur chacun des blocs, puis de faire la moyenne arithmétique sur les $K$ periodogrammes, d'où les formules suivantes:
+Le principe de ce periodogramme consiste à découper le signal en $K$ blocs de longueur $M$, tels que $K = \frac{N}{M}$, de calculer le periodogramme $I$ [6] sur chacun des blocs, puis de faire la moyenne arithmétique sur les $K$ periodogrammes, d'où les formules suivantes:
 
 \begin{equation}
     I_i(f) = \frac{1}{M} \left| \sum_{n=0}^{M-1} x_i(n) e^{-j 2 \pi f n} \right|^2
@@ -204,10 +204,29 @@ Dans le cas du periodogramme de Bartlett on a:
 
 Ainsi on a: 
 $$K_{MA} = 25$$  $$K_{AR} = 5$$
-On remarque qu'on retrouve des facteurs similaires pour les deux processus, mais surtout que le periodogramme de Bartlett se heurte au même problème que celui de Daniell. I.e pour le processus à variations spectrales rapides, L'estimateur ne réduit la variance que d'un facteur 5, ce qui laisse le tracé fortement perturbé par le bruit.
+%% Figure 2 tracés Bartlett
 \\
-Periodogramme de Welch:
+\indent On remarque qu'on retrouve des facteurs similaires pour les deux processus, mais surtout que le periodogramme de Bartlett se heurte au même problème que celui de Daniell, c'est-à-dire que pour le processus à variations spectrales rapides, l'estimateur ne réduit la variance que d'un facteur 5, ce qui laisse le tracé fortement perturbé par le bruit.
 
+De plus, le periodogramme de Bartlett entraine deux problèmes supplémentaires: 
+\\-Une fuite spectrale, clairement observable sur le tracé du processus AR [figure AR], due au fenetrage temporelle par des porte, donc des convolutions fréquentielles par des sinus cardinaux.
+\\-Une perte d'information aux extrémités de chacun des blocs causée par son découpage en K blocs disjoints. 
+\newline
+Periodogramme de Welch:\\
+\indent Welch reprend le principe du periodogramme de Bartlett mais cherche à résoudre les deux problèmes cités ci-dessus. Premièrement, en fenêtrant par une fenêtre non rectangulaire, par exemple fenêtre de Hann. Puis en considérant un taux de recouvrement entre les différentes fenêtres.
+
+\begin{equation}
+  I_i(f) = \frac{1}{M \cdot U} \left| \sum_{n=0}^{L-1} x_i(n) e^{-j 2 \pi f n} \right|^2
+  \end{equation}
+  où U est le facteur de normalisation de la puissance de la fenêtre :
+  \begin{equation}
+  U = \frac{1}{M} \sum_{n=0}^{M-1} |w(n)|^2
+  \end{equation}
+  L'estimateur de Welch est la moyenne de ces K spectres :
+  \begin{equation}
+  \hat{S}{\text{Welch}}(f) = \frac{1}{K} \sum_{i=1}^{K} I_i(f)
+\end{equation}
+Pour ce periodogramme, 
 
 
 
